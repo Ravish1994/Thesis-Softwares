@@ -1,5 +1,11 @@
 import pandas as pd
 import numpy as np
+from netCDF4 import Dataset
+import xarray
+import requests
+import urllib.request
+import xarray as xr
+import io
 
 ''' 
 CYGNSS Level 1 Science Data Record Version3.1
@@ -581,126 +587,125 @@ TS1 = [[172684, 172701, 172370, 172492, 172300, 172421, 172627, 172342],  # Day_
        [172000, 171258, 171900, 172000, 160528, 172000, 166137, 171974],  # Day_364
        [171324, 170061, 170285, 169741, 172000, 169617, 169450, 171856]]  # Day_365
        
-'''--Generating Link--'''
-a1 = 'https://podaac-opendap.jpl.nasa.gov/opendap/allData/cygnss/L1/v3.0/2021/'                   ## +a, Day Number in Year
-a2 = '/cyg'                                                                                       ## +b, Satellite number
-a3 = '.ddmi.s2021'                                                                                ## +b1, Month number +b2, Day Number in month
 
-''' --Enter the variables name as per requirement**(Update as per need)--'''
-v3  = 'sp_lat'
-v4  = ',sp_lon'
-v5  = ',sp_inc_angle'
-v6  = ',sp_rx_gain'
-v7  = ',gps_tx_power_db_w'
-v8  = ',gps_ant_gain_db_i'
-v9  = ',ddm_snr'
-v10  = ',ddm_noise_floor'
-v11  = ',rx_to_sp_range'
-v12  = ',tx_to_sp_range'
-v13  = ',quality_flags'
-v14  = ',power_analog'
+'''-------------------------------------------------Generating Link--------------------------------------------------------'''
 
+def Newly_Added_Variables(List_Variables,TS):
+    n = len(List_Variables)
+    s3 = '%5B0:1:16%5D%5B0:1:10%5D'
+    S = f'%5B0:1:{TS}%5D%5B0:1:3%5D'                         ## Sample range
+    L = ''
+    for V in List_Variables:
+        if V=='power_analog':
+            L = L+f',{V}'+S+s3
+        else:
+            L = L+f',{V}'+S
+    return L
 
-'''--Generating URLs for the datasets**(Update as per variables)--'''
-url1 = []
-for i in range(1,366):
-    a = fun1(i)                            ## Day number in year
-    B = fun5(i)
-    for j in range(1,9):                   ## Satellite number
-        a4 = fun6(i,j)
-        a5 = fun7(i,j)
-        TS = TS1[i-1][j-1]
-        S = f'%5B0:1:{TS}%5D%5B0:1:3%5D'   ## Sample range
-        s3 = '%5B0:1:16%5D%5B0:1:10%5D'
-        b = fun2(j)                        ## Satellite number
-        url_1 = a1+a+a2+b+a3+B+a4+B+a5+v3+S+v4+S+v5+S+v6+S+v7+S+v8+S+v9+S+v10+S+v11+S+v12+S+v13+S+v14+S+s3
-        url1.append(url_1)
-url2 = np.array(url1)
-url = url2.reshape(365,8)
-
-'''Handling missing satellite's data'''
-url[0][3] = url[0][2]
-url[5][1] = url[5][0]
-url[12][1] = url[12][0]
-url[19][0] = url[19][3]
-url[19][1] = url[19][3]
-url[19][2] = url[19][3]
-url[19][5] = url[19][3]
-url[20][4] = url[20][3]
-url[21][4] = url[21][3]
-url[22][4] = url[22][3]
-url[23][4] = url[23][3]
-url[24][4] = url[24][3]
-url[25][4] = url[25][3]
-url[117][1] = url[117][2]
-url[167][4] = url[167][3]
-url[179][5] = url[179][4]
-url[187][0] = url[187][1]
-url[188][0] = url[188][1]
-url[189][0] = url[189][1]
-url[321][4] = url[321][3]
-
-''' Code for the entire world dataset '''
-import requests
-def Download_CYGNSSdata(m,n):
-    for i in range(m-1,n):
-        B = fun5(i+1)
-        for j in range(7,8):
-            urls = url[i][j]
-            r = requests.get(urls)
-            with open(f"cyg0{j+1}.ddmi.s2021{B}-000000-e2021{B}-235959.l1.power-brcs.a30.d31.nc.nc",'wb') as f:
-                f.write(r.content) 
-
-                
-                
-'''Code for downloading in the ganga catchment only'''
+def Creating_Array_Links(Variables):
+    a1 = 'https://podaac-opendap.jpl.nasa.gov/opendap/allData/cygnss/L1/v3.0/2021/'  ## +a, Day Number in Year
+    a2 = '/cyg'                                                          ## +b, Satellite number
+    a3 = '.ddmi.s2021'                                                   ## +b1, Month number +b2, Day Number in month
+    v3  = 'sp_lat' ## +S
+    v4  = ',sp_lon' ## +S
+    url1 = []
+    for i in range(1,366):
+        a = fun1(i)                            ## Day number in year
+        B = fun5(i)
+        for j in range(1,9):                   ## Satellite number
+            a4 = fun6(i,j)
+            a5 = fun7(i,j)
+            TS = TS1[i-1][j-1]
+            s3 = '%5B0:1:16%5D%5B0:1:10%5D'
+            S = f'%5B0:1:{TS}%5D%5B0:1:3%5D'                         ## Sample range
+            b = fun2(j)                                              ## Satellite number
+            url_1 = a1+a+a2+b+a3+B+a4+B+a5+v3+S+v4+S
+            url_2 = Newly_Added_Variables(Variables,TS)  ## User Variables
+            url_0 = url_1+url_2
+            url1.append(url_0)
+    url2 = np.array(url1)
+    url = url2.reshape(365,8)
+    
+    '''Handling missing satellite's data'''
+    L1 = [0,5,12,19,19,19,19,20,21,22,23,24,25,117,167,179,187,188,189,321]
+    L2 = [3,1,1,0,1,2,5,4,4,4,4,4,4,1,4,5,0,0,0,4]
+    for i,j in zip(L1,L2):
+        url[i][j] = url[321][3]
+    return url
+                  
+'''Code for subsetting'''
 def masking_data_in_Region(ds,lat_lowerLim,lat_upperLim,lon_lowerLim,lon_upperLim):
+    Keys = ds.variables.keys()
+    Keys = [K for K in Keys]
+    K1 = ['sample', 'ddm', 'sp_lat', 'sp_lon']
+    for K1 in K1:
+        Keys.remove(f'{K1}')
     Lat1 = (np.array(ds['sp_lat'])).flatten()
     Lat1 = (pd.DataFrame(Lat1)).replace(to_replace=-9999,value=np.nan)
     Lat1.columns = ['sp_lat']
     Lat1['sp_lon'] = (pd.DataFrame((np.array(ds['sp_lon'])).flatten())).replace(to_replace=-9999,value=np.nan)
-    Lat1['sp_inc_angle'] = (pd.DataFrame((np.array(ds['sp_inc_angle'])).flatten())).replace(to_replace=-9999,value=np.nan)
-    Lat1['sp_rx_gain'] = (pd.DataFrame((np.array(ds['sp_rx_gain'])).flatten())).replace(to_replace=-9999,value=np.nan)
-    Lat1['gps_tx_power_db_w'] = (pd.DataFrame((np.array(ds['gps_tx_power_db_w'])).flatten())).replace(to_replace=-9999,value=np.nan)
-    Lat1['gps_ant_gain_db_i'] = (pd.DataFrame((np.array(ds['gps_ant_gain_db_i'])).flatten())).replace(to_replace=-9999,value=np.nan)
-    Lat1['ddm_snr'] = (pd.DataFrame((np.array(ds['ddm_snr'])).flatten())).replace(to_replace=-9999,value=np.nan)
-    Lat1['ddm_noise_floor'] = (pd.DataFrame((np.array(ds['ddm_noise_floor'])).flatten())).replace(to_replace=-9999,value=np.nan)
-    Lat1['rx_to_sp_range'] = (pd.DataFrame((np.array(ds['rx_to_sp_range'])).flatten())).replace(to_replace=-9999,value=np.nan)
-    Lat1['tx_to_sp_range'] = (pd.DataFrame((np.array(ds['tx_to_sp_range'])).flatten())).replace(to_replace=-9999,value=np.nan)
-    Lat1['quality_flags'] = (pd.DataFrame((np.array(ds['quality_flags'])).flatten())).replace(to_replace=-9999,value=np.nan)
-
-    Pi = np.array(ds['power_analog'])
-    l,m,n,o = Pi.shape
-    P1 =  (pd.DataFrame((np.array(ds['power_analog'])).flatten())).replace(to_replace=-9999,value=np.nan)
-    P1 = P1.to_numpy()
-    P1 = P1.reshape(l,4,17,11)
-    df1 = []
-    for i in range(l):
-        for j in range(4):
-            a = np.max(P1[i][j][:])
-            df1.append(a)      
-    df2 = np.array(df1)
-    DDM_peak = df2.reshape(l,4)
-    Lat1['ddm_peak'] = DDM_peak.flatten()
+    for K in Keys:
+        if K=='power_analog':
+            Pi = np.array(ds[f'{K}'])
+            l,m,n,o = Pi.shape
+            P1 =  (pd.DataFrame((np.array(ds[f'{K}'])).flatten())).replace(to_replace=-9999,value=np.nan)
+            P1 = P1.to_numpy()
+            P1 = P1.reshape(l,4,17,11)
+            df1 = []
+            for i in range(l):
+                for j in range(4):
+                    a = np.max(P1[i][j][:])
+                    df1.append(a)      
+            df2 = np.array(df1)
+            DDM_peak = df2.reshape(l,4)
+            Lat1['ddm_peak'] = DDM_peak.flatten()
+        else:
+            Lat1[f'{K}'] = (pd.DataFrame((np.array(ds[f'{K}'])).flatten())).replace(to_replace=-9999,value=np.nan)
     mask = ((Lat1['sp_lat']>lat_lowerLim) & (Lat1['sp_lat']<lat_upperLim)) & ((Lat1['sp_lon']>lon_lowerLim) & (Lat1['sp_lon']<lon_upperLim))
     Lat1 = Lat1[mask]
     return Lat1
 
+'--------------Downloading without attached Filter---------------------------------------------------'
+
+def Subsetting_CYGNSS_Data(m,n,lat1,lon1,lat2,lon2,Variables):
+    url = Creating_Array_Links(Variables)
+    for i in range(m-1,n):
+        B = fun5(i+1)
+        for j in range(8):
+            urls = url[i][j]
+            r = requests.get(urls)
+            Path = rf"D:\EG\Project Data\CYGNSS_Raw_Ganga_Catchment_2021\Day_{i+1}\cyg0{j+1}.ddmi.s2021{B}-000000-e2021{B}-235959.l1.power-brcs.a30.d31.nc.nc"
+            with open(Path,'wb') as f:
+                f.write(r.content) 
+            dataset = Dataset(Path,'r')
+            Subset_Data = masking_data_in_Region(dataset,lat_lowerLim=lat1,lat_upperLim=lat2,lon_lowerLim=lon1,lon_upperLim=lon2)
+            xr = xarray.Dataset.from_dataframe(Subset_Data)
+            xr.to_netcdf(Path)
+                
+'--------------Downloading with attached Filter------------------------------------------------------'
+def Read_Data_Link(urls):
+    req = urllib.request.Request(urls)
+    with urllib.request.urlopen(req) as resp:
+        dataset = xr.open_dataset(io.BytesIO(resp.read()))
+    return dataset
 
 def Download_CYGNSS_Spatial_Filter(m,n,lat1,lon1,lat2,lon2):
-    import urllib.request
-    import xarray as xr
-    import io
     for i in range(m-1,n):
         for j in range(8):
             urls = url[i][j]
             req = urllib.request.Request(urls)
             with urllib.request.urlopen(req) as resp:
                 dataset = xr.open_dataset(io.BytesIO(resp.read()))
-                Lat1 = masking_data_in_Region(dataset,lat_lowerLim=lat1,lat_upperLim=lat2,lon_lowerLim=lon1,lon_upperLim=lon2)
-                Lat1.to_csv(f'Day_{i+1}_Cyg0{j+1}.csv',index = False)
+                Subset_Data = masking_data_in_Region(dataset,lat_lowerLim=lat1,lat_upperLim=lat2,lon_lowerLim=lon1,lon_upperLim=lon2)
+                xr = xarray.Dataset.from_dataframe(Subset_Data)
+                xr.to_netcdf(rf'D:\EG\Project Data\CYGNSS_Raw_Ganga_Catchment_2021\Day_{i+1}\Day_{i+1}_Cyg0{j+1}.nc')
                 
-# Downloading day by day
-def Download_CYGNSS_Data_2021(m,n,lat1,lon1,lat2,lon2):
-    for i in range(m,n-1):
-        Download_CYGNSS_Spatial_Filter(i,i+1,lat1,lon1,lat2,lon2)
+
+def Subsetting_CYGNSS_Spatial_Filter(m,n,lat1,lon1,lat2,lon2):
+    for i in range(m-1,n):
+        for j in range(8):
+            urls = url[i][j]
+            dataset = Read_Data_Link(urls)
+            Subset_Data = masking_data_in_Region(dataset,lat_lowerLim=lat1,lat_upperLim=lat2,lon_lowerLim=lon1,lon_upperLim=lon2)
+            xr = xarray.Dataset.from_dataframe(Subset_Data)
+            xr.to_netcdf(rf'D:\EG\Project Data\CYGNSS_Raw_Ganga_Catchment_2021\Day_{i+1}\Day_{i+1}_Cyg0{j+1}.nc')
