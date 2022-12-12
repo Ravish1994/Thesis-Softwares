@@ -47,43 +47,64 @@ def Plotting_Variations(path,n):
         
         CYGNSS_Data = df['Cygnss_SR']
         ## Applying change detection model on SR to retrieve Soil Moisture
-        Min       = np.min(CYGNSS_Data)     ## SR corresponding to the driest condition
-        Max       = np.max(CYGNSS_Data)     ## SR corresponding to the wettest condition
-
-        SmN       = (CYGNSS_Data-Min)/(Max-Min)         ## Finding SM
+        Min         = 0      ## SR corresponding to the driest condition
+        Max         = 20     ## SR corresponding to the wettest condition
+  
+        SmN         = (CYGNSS_Data-Min)/(Max-Min)         ## Finding SM
        
         SMAP_Data1  = df['SMAP_SM']
-        std1        = df['Cygnss_SD']
+        std1        = df['Cygnss_SD']/20
         
         df2              = pd.DataFrame(SmN)
         df2.columns      = ['CYGNSS_SM']
-        df2              = pd.DataFrame(df['Day_No'])
+        df2['Day_No']    = pd.DataFrame(df['Day_No'])
         SMAP_Data1       = pd.DataFrame(df['SMAP_SM'])
         df2['SMAP_SM']   = pd.DataFrame(SMAP_Data1/100)
         df2['STD_SM']    = pd.DataFrame(df['Cygnss_SD']/20)
         df2['CYGNSS_SM'] = pd.DataFrame(SmN)
         
-        mask3     = (df2['CYGNSS_SM']>0) & (df2['CYGNSS_SM']<0.7)   ## Taking only upto 0.7  
-        df2       = df2[mask3]
         df2            = df2.dropna()
         CR             = (np.array(df2.corr()))*100
-        CR1            = np.round(CR[0][1],2)
+        CR1            = np.round(CR[2][0],2)
         
         act   = pd.DataFrame(SMAP_Data1).replace(to_replace=np.nan,value=0)
         pred  = pd.DataFrame(CYGNSS_Data).replace(to_replace=np.nan,value=0)
         rmse  = mean_squared_error(act/100, pred/20, squared=False)
         
+        a2 = np.array(act)/100
+        a1 = np.array(pred)
+        a1 = (a1-np.min(a1))/(np.max(a1)-np.min(a1))
+        denominator = np.sum((a1 - np.mean(a1))**2)
+        numerator   = np.sum((a2 - a1)**2)
+        nse_val     = 1 - (numerator/denominator)
+        
         Day_No = df2['Day_No']
-        plt.figure(figsize=(40,15))
-        plt.scatter(Day_No,df2['SMAP_SM'],label = 'SMAP Soil Moisture')
-        plt.plot(Day_No,df2['CYGNSS_SM'],label  = 'CYGNSS Soil Moisture')
-        plt.fill_between(Day_No,df2['CYGNSS_SM']-df2['STD_SM'],df2['CYGNSS_SM']+df2['STD_SM'])
+        plt.figure(figsize=(30,10))
+        plt.plot(Day_No,df2['CYGNSS_SM'],label  = 'CYGNSS Soil Moisture',color='blue')
+        plt.fill_between(Day_No,df2['CYGNSS_SM']-df2['STD_SM'],df2['CYGNSS_SM']+df2['STD_SM'],color='grey')
+        plt.scatter(Day_No,df2['SMAP_SM'],label = 'SMAP Soil Moisture',color='black')
         plt.ylabel('Soil Moisture',fontsize=20)
         plt.xlabel('Days of Year 2020',fontsize=20)
-        plt.title(f'Latitude:{lat} Longitude:{lon} Correlation:{CR1}% RMSE:{round(rmse,4)}',fontsize=20)
-        plt.legend(fontsize=20) 
+        plt.title(f'Latitude:{lat} Longitude:{lon} Correlation:{CR1}% RMSE:{round(rmse,4)} NSE:{np.round(nse_val,2)}',fontsize=20)
+        plt.legend(fontsize=30) 
+
+        plt.figure(figsize=(4,4))
+        plt.scatter(df2['SMAP_SM'],df2['CYGNSS_SM'],s=20)
+        plt.ylabel('CYGNSS Derived Soil Moisture')
+        plt.xlabel('SMAP Soil Moisture')
+        plt.plot([0,1],[0,1],c='gray')
+        plt.xlim(0,1)
+        plt.ylim(0,1)
+        plt.xticks(np.arange(0, 1, 0.2))
+        plt.yticks(np.arange(0, 1, 0.2))
         
-        sns.lmplot(x='SMAP_SM',y='CYGNSS_SM',data=df2,aspect=4,height=6)
-        plt.xlabel('Cygnss Soil Moisture')
-        plt.ylabel('GLDAS_SM')
-        plt.title(f'''Fitting a Regression Line using lmplot''')
+        import seaborn as sns
+        plt.figure(figsize=(2,2))
+        sns.lmplot(x='SMAP_SM',y='CYGNSS_SM',data=df2,line_kws={'color': 'black'})
+        plt.xlabel('SMAP Soil Moisture')
+        plt.ylabel('CYGNSS Derived Soil Moisture')
+        plt.plot([0,1],[0,1],c='gray')
+        plt.xlim(0,1)
+        plt.ylim(0,1)
+        plt.xticks(np.arange(0, 1, 0.2))
+        plt.yticks(np.arange(0, 1, 0.2))

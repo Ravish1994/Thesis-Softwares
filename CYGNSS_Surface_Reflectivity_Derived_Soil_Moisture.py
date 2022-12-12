@@ -8,7 +8,13 @@ from scipy.interpolate import griddata
 import h5py
 import matplotlib.pyplot as plt
 import seaborn as sns
+import geopandas as gpd   
 
+cmap = 'gist_ncar'
+fp = r'indian_districts.shp'
+map_df = gpd.read_file(fp) 
+map_df_msk = map_df[((map_df['latitude']>20) & (map_df['latitude']<32)) & ((map_df['longitude']>70) & (map_df['longitude']<90))]
+DF3 = map_df_msk
 
 '''------------------------------------------Importing CYGNSS CSV files & Removing outliers -------------------------------------------
 Removing outliers:
@@ -181,40 +187,61 @@ def Corr(path1,path2,a,b):
             else:
                 SRSM[i1][j1] = np.nan
                     
-    plt.figure(figsize=(20,5))
-    plt.subplot(1,2,1)
-    cmap = 'gist_ncar'
-    plt.contourf(lon,lat,SRSM,cmap = cmap)
-    plt.xlabel('Longitude')
-    plt.ylabel('Latitude')
-    cbar = plt.colorbar(shrink=1)
+    fig , ax1 = plt.subplots(figsize=(20, 10))
+    DF3.plot(color = 'white', edgecolor = 'black',axes=ax1)
+    plt.pcolor(lon,lat,SRSM,cmap="YlGnBu")
+    DF3.plot(color = None, edgecolor = 'black',axes=ax1,alpha=0.1)
+    cbar = plt.colorbar()
     cbar.set_label(f'Daily Soil Moisture')
-    plt.title(f'''CYGNSS Derived Soil Moisture''')
+    plt.xlabel('Longitude',fontsize=25)
+    plt.ylabel('Lattitude',fontsize=25)
+    plt.title(f'CYGNSS Derived Soil Moisture',fontsize=25)
+    plt.tick_params(axis='both', which='major', labelsize=15)
     
     SMAPSM = griddata((Lat,Lon),SM,(lat,lon), method='nearest')
-    plt.subplot(1,2,2)
-    plt.contourf(lon,lat,SMAPSM,cmap = cmap)
-    plt.xlabel('Longitude')
-    plt.ylabel('Latitude')
-    cbar = plt.colorbar(shrink=1)
+    
+    fig , ax1 = plt.subplots(figsize=(20, 10))
+    DF3.plot(color = 'white', edgecolor = 'black',axes=ax1)
+    plt.pcolor(lon,lat,SMAPSM,cmap="YlGnBu")
+    DF3.plot(color = None, edgecolor = 'black',axes=ax1,alpha=0.1)
+    cbar = plt.colorbar()
     cbar.set_label(f'Daily Soil Moisture')
-    plt.title(f'''SMAP Soil Moisture: Day:{b}, Correlation:{CR}%''')
+    plt.xlabel('Longitude',fontsize=25)
+    plt.ylabel('Lattitude',fontsize=25)
+    plt.title(f'SMAP Soil Moisture: Day:{b}, Correlation:{CR}%',fontsize=25)
+    plt.tick_params(axis='both', which='major', labelsize=15)
     
     Points = []
     for i in range(len(SMAPSM.flatten())):
         Points.append(i)
         
-    plt.figure(figsize=(40,10))
+    plt.figure(figsize=(30,10))
     plt.plot(Points[:2000],SMAPSM.flatten()[:2000],label = 'SMAP Soil Moisture')
-    plt.plot(Points[:2000],SRSM.flatten()[:2000],label    = 'CYGNSS Derived Soil Moisture')
+    plt.plot(Points[:2000],SRSM.flatten()[:2000],label   = 'CYGNSS Derived Soil Moisture')
     plt.ylabel('''Surface reflectiviy and Soil Moisture''',fontsize=20)
     plt.xlabel('Points',fontsize=20)
-    plt.legend(fontsize=20) 
+    plt.legend(fontsize=30)   
     
-    sns.lmplot(x='SR',y='SM',data=SmN,aspect=4,height=6)
+    plt.figure(figsize=(4,4))
+    plt.scatter(SmN['SR'],SmN['SM'],s=20)
     plt.xlabel('CYGNSS Derived Soil Moisture')
-    plt.ylabel('SMAP Soil Moisture in cm3/cm3')
-    plt.title(f'''Fitting a Regression Line using lmplot''')
+    plt.ylabel('SMAP Soil Moisture')
+    plt.plot([0,1],[0,1],c='gray')
+    plt.xlim(0,1)
+    plt.ylim(0,1)
+    plt.xticks(np.arange(0, 1, 0.2))
+    plt.yticks(np.arange(0, 1, 0.2))
+    
+    import seaborn as sns
+    plt.figure(figsize=(2,2))
+    sns.lmplot(x='SR',y='SM',data=SmN,line_kws={'color': 'black'})
+    plt.xlabel('Normalized Surface Reflectivity')
+    plt.ylabel('SMAP Soil Moisture')
+    plt.plot([0,1],[0,1],c='gray')
+    plt.xlim(0,1)
+    plt.ylim(0,1)
+    plt.xticks(np.arange(0, 1, 0.2))
+    plt.yticks(np.arange(0, 1, 0.2))
     
 
 '''------------------------------------------Function for Correlating all the 2020 data------------------------------------------

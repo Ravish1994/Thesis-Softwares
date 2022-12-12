@@ -4,6 +4,13 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from scipy.interpolate import griddata
 
+import geopandas as gpd     
+cmap = 'gist_ncar'
+fp = r'indian_districts.shp'
+map_df = gpd.read_file(fp) 
+map_df_msk = map_df[((map_df['latitude']>22) & (map_df['latitude']<27)) & ((map_df['longitude']>72) & (map_df['longitude']<79))]
+DF3 = map_df_msk
+
 def Biomass_Data_In_Chambal(Big_Data_File_Path):
     ## Slicing the Big Biomass data inside the Ganga Catchment
     Biomass_BigData = Dataset(Big_Data_File_Path, 'r')
@@ -25,14 +32,17 @@ def Biomass_Data_In_Chambal(Big_Data_File_Path):
     Lon,Lat = np.meshgrid(Lon,Lat)
 
     # Creating contour colour map of Biomass data 
-    plt.figure(figsize=(10,4))
-    plt.contourf(Lon,Lat,sliced_agb,cmap='gist_ncar')
-    plt.xlabel('Longitude')
-    plt.ylabel('Latitude')
+    fig , ax2 = plt.subplots(figsize=(20, 10))
+    DF3.plot(color = 'white', edgecolor = 'black',axes=ax2)
+    plt.pcolor(Lon,Lat,sliced_agb,cmap="YlGnBu")
+    DF3.plot(color = None, edgecolor = 'black',axes=ax2,alpha=0.1)
     cbar = plt.colorbar()
-    cbar.set_label('Mg/ha')
-    plt.title('Biomass Data of 100 m spatial resolution in the Chambal Catchment')
-
+    cbar.set_label(f'Mg/ha')
+    plt.xlabel('Longitude',fontsize=25)
+    plt.ylabel('Lattitude',fontsize=25)
+    plt.title(f'Biomass Data of 100 m spatial resolution in the Chambal Catchment',fontsize=25)
+    plt.tick_params(axis='both', which='major', labelsize=15)
+    
     Df_Biomass = pd.DataFrame(Lat.flatten())
     Df_Biomass.columns = ['Latitude']
     Df_Biomass['Longitude'] = Lon.flatten()

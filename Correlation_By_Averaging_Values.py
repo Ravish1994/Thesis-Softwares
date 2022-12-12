@@ -3,6 +3,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 from termcolor import colored
 import seaborn as sns
+import geopandas as gpd   
+
+cmap = 'gist_ncar'
+fp = r'indian_districts.shp'
+map_df = gpd.read_file(fp) 
+map_df_msk = map_df[((map_df['latitude']>20) & (map_df['latitude']<32)) & ((map_df['longitude']>70) & (map_df['longitude']<90))]
+DF3 = map_df_msk
 
 '''-----------------------------------------Sub Functions for Taking Average-----------------------------------------'''
 '''
@@ -99,38 +106,60 @@ def Correlating_CYGNSS_SR_SMAP_SM(path1,path2,d):
     W = np.array(DF['SP_SM'])
     W = W.reshape(m,n)
     
-    plt.figure(figsize = (20,5))
-    plt.subplot(1,2,1)
-    plt.contourf(X,Y,Z,cmap = 'gist_ncar')
-    plt.xlabel('Longitude')
-    plt.ylabel('Latitude')
+    fig , ax1 = plt.subplots(figsize=(20, 10))
+    DF3.plot(color = 'white', edgecolor = 'black',axes=ax1)
+    plt.pcolor(Y,X,Z,cmap="YlGnBu")
+    DF3.plot(color = None, edgecolor = 'black',axes=ax1,alpha=0.1)
     cbar = plt.colorbar()
-    cbar.set_label('Surface Reflectivity in dB')
-    plt.title(f'{d} : Correlation = {CR} %')
+    cbar.set_label(f'CYGNSS Surface Reflectivity in dB')
+    plt.xlabel('Longitude',fontsize=25)
+    plt.ylabel('Lattitude',fontsize=25)
+    plt.title(f'{d} : Correlation = {CR} %',fontsize=25)
+    plt.tick_params(axis='both', which='major', labelsize=15)
     
-    plt.subplot(1,2,2)
-    plt.contourf(X,Y,W,cmap = 'gist_ncar')
-    plt.xlabel('Longitude')
-    plt.ylabel('Latitude')
+    fig , ax1 = plt.subplots(figsize=(20, 10))
+    DF3.plot(color = 'white', edgecolor = 'black',axes=ax1)
+    plt.pcolor(Y,X,W,cmap="YlGnBu")
+    DF3.plot(color = None, edgecolor = 'black',axes=ax1,alpha=0.1)
     cbar = plt.colorbar()
-    cbar.set_label('Soil Moisture in cm3/cm3')
-    plt.title(f'{d} : Correlation = {CR} %')
+    cbar.set_label(f'Soil Moisture in cm3/cm3')
+    plt.xlabel('Longitude',fontsize=25)
+    plt.ylabel('Lattitude',fontsize=25)
+    plt.title(f'{d} : Correlation = {CR} %',fontsize=25)
+    plt.tick_params(axis='both', which='major', labelsize=15)
     
     Points = []
     for i in range(len(X.flatten())):
         Points.append(i)
         
-    plt.figure(figsize=(40,15))
+    plt.figure(figsize=(30,10))
     plt.plot(Points[:1000],W.flatten()[:1000],label = 'SMAP Soil Moisture')
     plt.plot(Points[:1000],Z.flatten()[:1000]/20,label    = 'Normalized CYGNSS Derived Surface Reflectivity')
     plt.ylabel('''Surface reflectiviy and Soil Moisture''',fontsize=20)
     plt.xlabel('Points',fontsize=20)
-    plt.legend(fontsize=20) 
+    plt.legend(fontsize=30) 
     
-    sns.lmplot(x='SP_SR',y='SP_SM',data=DF,aspect=4,height=6)
-    plt.xlabel('Normalized CYGNSS Derived Surface Reflectivity')
-    plt.ylabel('SMAP Soil Moisture in cm3/cm3')
-    plt.title(f'''Fitting a Regression Line using lmplot''')
+    plt.figure(figsize=(4,4))
+    plt.scatter(DF['SP_SR']/20,DF['SP_SM'],s=20)
+    plt.xlabel('Normalized Surface Reflectivity')
+    plt.ylabel('SMAP Soil Moisture')
+    plt.plot([0,1],[0,1],c='gray')
+    plt.xlim(0,1)
+    plt.ylim(0,1)
+    plt.xticks(np.arange(0, 1, 0.2))
+    plt.yticks(np.arange(0, 1, 0.2))
+    
+    DF['SP_SR'] = DF['SP_SR']/20
+    import seaborn as sns
+    plt.figure(figsize=(2,2))
+    sns.lmplot(x='SP_SR',y='SP_SM',data=DF,line_kws={'color': 'black'})
+    plt.xlabel('Normalized Surface Reflectivity')
+    plt.ylabel('SMAP Soil Moisture')
+    plt.plot([0,1],[0,1],c='gray')
+    plt.xlim(0,1)
+    plt.ylim(0,1)
+    plt.xticks(np.arange(0, 1, 0.1))
+    plt.yticks(np.arange(0, 1, 0.1))
     
 
 '''

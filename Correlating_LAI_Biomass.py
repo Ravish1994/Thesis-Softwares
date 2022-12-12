@@ -1,13 +1,19 @@
 import numpy as np
-import sympy
-from sympy import *
 import pandas as pd
 import matplotlib.pyplot as plt
+from scipy.interpolate import griddata
+
+import geopandas as gpd     
+cmap = 'gist_ncar'
+fp = r'indian_districts.shp'
+map_df = gpd.read_file(fp) 
+map_df_msk = map_df[((map_df['latitude']>22) & (map_df['latitude']<27)) & ((map_df['longitude']>72) & (map_df['longitude']<79))]
+DF3 = map_df_msk
 
 ## Spatial averaging to get data on similar grid
 ## Averaging function to average the LAI and AGB in the SMAP grid cell of 36 x 36 Km
 def Avg(lat1,lon1,Df,Var):
-    mask = ((Df['Latitude']>(lat1-0.18)) & (Df['Latitude']<(lat1+0.18)) & (Df['Longitude']>(lon1-0.18)) & (Df['Longitude']<(lon1+0.18)))
+    mask = ((Df['Latitude']>(lat1-0.025)) & (Df['Latitude']<(lat1+0.025)) & (Df['Longitude']>(lon1-0.025)) & (Df['Longitude']<(lon1+0.025)))
     Df = Df[mask]
     
     T_Var = Df[f'{Var}']
@@ -18,11 +24,11 @@ def Avg(lat1,lon1,Df,Var):
         T_Var_avg = np.nan
     return T_Var_avg
 
-def Correlate_LAI_Biomass(DS_LAI,DS_BM):
+def Resample_LAI_Biomass(DS_LAI,DS_BM):
     ## Averaging operation is done in the Chambal catchment only
-    ## Lat and Lon of the Centroid of 36 Km SMAP grid cells
-    lat = [22.18,22.54,22.90,23.26,23.62,24.98,24.34,24.70,25.06,25.42,25.78,26.14,26.50,26.86,27.22]
-    lon = [73.18,73.54,73.9,74.26,74.62,74.98,75.34,75.7,76.06,76.42,76.78,77.14,77.5,77.86,78.22,78.58,78.94,79.3,79.66]
+    ## Creating Lat and Lon of the Centroid of 6 Km grid cells
+    lat = np.arange(22.025,28,0.05)
+    lon = np.arange(73.025,80,0.05)
 
     Lat_LAI = []
     Lon_LAI = []
@@ -44,16 +50,141 @@ def Correlate_LAI_Biomass(DS_LAI,DS_BM):
     DF['Longitude'] = Lon_LAI
     DF['BM']  = BM_36
     DF['LAI'] = LAI_36
-    DF = DF.dropna()
+    return DF,Lat_LAI,Lon_LAI,LAI_36,BM_36
+    
+def Correlate_LAI_BM(DF):
+    DF2   = DF.copy()
+    DF1   = DF2
 
-    DF_F = DF.drop(['Latitude','Longitude'],axis = 1)
+    DF_F = DF1.drop(['Latitude','Longitude'],axis = 1)
+    DF_F = DF_F[DF_F['BM']>55]
     CR = (np.array(DF_F.corr()))*100
     CR1 = np.round(CR[0][1],2) 
-
-    plt.figure(figsize=(20,5))
-    plt.plot(DF_F['LAI'],label='Annual average LAI of 2018 in m2/m2')
-    plt.plot(DF_F['BM'],label='Annual average LAI of 2018 Biomass in Mg/Hectare')
-    plt.title(f'''Correlation: {np.abs(CR1)} %''') 
-    plt.legend()
     
-    return DF
+    DF = DF.replace(to_replace = np.nan,value = 0)
+    lat = np.arange(22.025,27,0.05)
+    lon = np.arange(73.025,79,0.05)
+    Lat,Lon = np.meshgrid(lat,lon)
+    
+    Latitude  = DF['Latitude']
+    Longitude = DF['Longitude']
+    BM        = DF['BM']
+    LAI       = DF['LAI']
+    
+    BM_mesh   = griddata((Latitude,Longitude),BM,(Lat,Lon), method = 'nearest')
+    LAI_mesh  = griddata((Latitude,Longitude),LAI,(Lat,Lon), method = 'nearest')
+    
+    # Creating contour colour map of Biomass and LAI data on 5 Km grid
+    fig , ax2 = plt.subplots(figsize=(20, 10))
+    DF3.plot(color = 'white', edgecolor = 'black',axes=ax2)
+    plt.pcolor(Lon,Lat,BM_mesh,cmap="YlGnBu")
+    DF3.plot(color = "white", edgecolor = 'black',axes=ax2,alpha=0.1)
+    cbar = plt.colorbar()
+    cbar.set_label('Mg/ha')
+    plt.xlabel('Longitude',fontsize=25)
+    plt.ylabel('Lattitude',fontsize=25)
+    plt.title(f'Biomass Data of 5 km spatial resolution',fontsize=25)
+    plt.tick_params(axis='both', which='major', labelsize=15)
+    
+    fig , ax2 = plt.subplots(figsize=(20, 10))
+    DF3.plot(color = 'white', edgecolor = 'black',axes=ax2)
+    plt.pcolor(Lon,Lat,LAI_mesh,cmap="YlGnBu")
+    DF3.plot(color = "white", edgecolor = 'black',axes=ax2,alpha=0.1)
+    cbar = plt.colorbar()
+    cbar.set_label('m2/m2')
+    plt.xlabel('Longitude',fontsize=25)
+    plt.ylabel('Lattitude',fontsize=25)
+    plt.title(f'Correlation with Biomass: {CR1}% LAI Data of 5 km grid cell',fontsize=25)
+    plt.tick_params(axis='both', which='major', labelsize=15)
+    
+def Spatial_Visualization_After_Normalization(DF):
+    DF  = DF.replace(to_replace = np.nan,value = 0)
+    DF['LAI'] = (DF['LAI']-np.min(np.array(DF['LAI'])))/(np.max(np.array(DF['LAI']))-np.min(np.array(DF['LAI'])))
+    DF['BM']  = (DF['BM']-np.min(np.array(DF['BM'])))/(np.max(np.array(DF['BM']))-np.min(np.array(DF['BM'])))
+    lat = np.arange(22.025,27,0.05)
+    lon = np.arange(73.025,79,0.05)
+    Lat,Lon = np.meshgrid(lat,lon)
+    
+    Latitude  = DF['Latitude']
+    Longitude = DF['Longitude']
+    BM        = DF['BM']
+    LAI       = DF['LAI']
+    
+    BM_mesh   = griddata((Latitude,Longitude),BM,(Lat,Lon), method = 'nearest')
+    LAI_mesh  = griddata((Latitude,Longitude),LAI,(Lat,Lon), method = 'nearest')
+    
+    # Creating contour colour map of Biomass and LAI data on 5 Km grid
+    fig , ax2 = plt.subplots(figsize=(20, 10))
+    DF3.plot(color = 'white', edgecolor = 'black',axes=ax2)
+    plt.pcolor(Lon,Lat,BM_mesh,cmap="YlGnBu")
+    DF3.plot(color = "white", edgecolor = 'black',axes=ax2,alpha=0.1)
+    cbar = plt.colorbar()
+    cbar.set_label('Mg/ha')
+    plt.xlabel('Longitude',fontsize=25)
+    plt.ylabel('Lattitude',fontsize=25)
+    plt.title(f'Biomass Data of 5 km spatial resolution',fontsize=25)
+    plt.tick_params(axis='both', which='major', labelsize=15)
+    
+    fig , ax2 = plt.subplots(figsize=(20, 10))
+    DF3.plot(color = 'white', edgecolor = 'black',axes=ax2)
+    plt.pcolor(Lon,Lat,LAI_mesh,cmap="YlGnBu")
+    DF3.plot(color = "white", edgecolor = 'black',axes=ax2,alpha=0.1)
+    cbar = plt.colorbar()
+    cbar.set_label('m2/m2')
+    plt.xlabel('Longitude',fontsize=25)
+    plt.ylabel('Lattitude',fontsize=25)
+    plt.title(f'LAI Data of 5 km grid cell',fontsize=25)
+    plt.tick_params(axis='both', which='major', labelsize=15)
+    
+def Spatial_Visualization_LAI_BM(DF):
+    DF  = DF.replace(to_replace = np.nan,value = 0)
+    DF  = DF[DF['LAI']>0]
+    
+    lat = np.arange(22.025,27,0.05)
+    lon = np.arange(73.025,79,0.05)
+    Lat,Lon = np.meshgrid(lat,lon)
+    
+    Latitude  = DF['Latitude']
+    Longitude = DF['Longitude']
+    BM        = DF['BM']
+    LAI       = DF['Calculated Biomass']
+    LAI1      = DF['LAI']
+    
+    BM_mesh   = griddata((Latitude,Longitude),BM,(Lat,Lon), method = 'nearest')
+    LAI_mesh  = griddata((Latitude,Longitude),LAI,(Lat,Lon), method = 'nearest')
+    LAI_mesh1 = griddata((Latitude,Longitude),LAI1,(Lat,Lon), method = 'nearest')
+    
+    # Creating contour colour map of Biomass and LAI data on 5 Km grid
+    # Creating contour colour map of Biomass and LAI data on 5 Km grid
+    fig , ax2 = plt.subplots(figsize=(20, 10))
+    DF3.plot(color = 'white', edgecolor = 'black',axes=ax2)
+    plt.pcolor(Lon,Lat,BM_mesh,cmap="YlGnBu")
+    DF3.plot(color = "white", edgecolor = 'black',axes=ax2,alpha=0.1)
+    cbar = plt.colorbar()
+    cbar.set_label('Kg/m2')
+    plt.xlabel('Longitude',fontsize=25)
+    plt.ylabel('Lattitude',fontsize=25)
+    plt.title(f'Actual Biomass from ESA CCI',fontsize=25)
+    plt.tick_params(axis='both', which='major', labelsize=15)
+    
+    fig , ax2 = plt.subplots(figsize=(20, 10))
+    DF3.plot(color = 'white', edgecolor = 'black',axes=ax2)
+    plt.pcolor(Lon,Lat,LAI_mesh,cmap="YlGnBu")
+    DF3.plot(color = "white", edgecolor = 'black',axes=ax2,alpha=0.1)
+    cbar = plt.colorbar()
+    cbar.set_label('Kg/m2')
+    plt.xlabel('Longitude',fontsize=25)
+    plt.ylabel('Lattitude',fontsize=25)
+    plt.title(f'Calculated Biomass from LAI',fontsize=25)
+    plt.tick_params(axis='both', which='major', labelsize=15)
+    
+    fig , ax2 = plt.subplots(figsize=(20, 10))
+    DF3.plot(color = 'white', edgecolor = 'black',axes=ax2)
+    plt.pcolor(Lon,Lat,LAI_mesh1,cmap="YlGnBu")
+    DF3.plot(color = "white", edgecolor = 'black',axes=ax2,alpha=0.1)
+    cbar = plt.colorbar()
+    cbar.set_label('m2/m2')
+    plt.xlabel('Longitude',fontsize=25)
+    plt.ylabel('Lattitude',fontsize=25)
+    plt.title(f'LAI from NOAA',fontsize=25)
+    plt.tick_params(axis='both', which='major', labelsize=15)

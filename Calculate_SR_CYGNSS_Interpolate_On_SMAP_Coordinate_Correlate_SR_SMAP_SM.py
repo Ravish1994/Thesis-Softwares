@@ -89,16 +89,6 @@ def Surface_Reflectivity2(Data):
     DDM_peak =  Data['peak of power_analog'][:]   # 17 Delay × 11 Doppler(in Watt) bins corresp. to 50 km^2    
     P_r = DDM_peak*90
     T_rl = (P_r*(4*np.pi*(P3+P4))**2)/(P5*P1*P2*(0.19)**2)  # Effective Surface Reflectivity in dB
-    
-    T_rl = np.array(T_rl)
-    ## Masking the array without disturbing its shape and size
-    for i in range(len(T_rl)):
-        a = T_rl[i]
-        if (a>0) and (a<20):
-            T_rl[i] = T_rl[i]
-        else:
-            T_rl[i] = np.nan
-            
     return T_rl
 
 '''-------------------------------------1. Importing the SMAP hdf files & 
@@ -176,13 +166,10 @@ def Corr(path1,path2,a):      #**********************************Main correlatin
     SmN = pd.DataFrame(SM_SMP1)
     SmN.columns = ['SR']
     SmN['SM'] = np.array(SMAP_SM)
-    
-    Mask = (SmN['SM']>0) & (SmN['SM']<20)
-    SmN  = SmN[Mask]
-    S1M  = SmN.dropna()
+    S1M = SmN.dropna()
     Corr = np.array(S1M.corr())
-    CR   = np.round(Corr[0][1]*100,2)
-    CR1  = f'{CR} %'
+    CR = np.round(Corr[0][1],2)
+    
 #     SmN['SMAP_Lat'] = np.array(SMAP_Lat)
 #     X = SmN['SMAP_Lat']
 #     Y = SmN['SM']
@@ -196,7 +183,7 @@ def Corr(path1,path2,a):      #**********************************Main correlatin
 #     plt.title(f'Correlation = {CR}')
 #     plt.legend()
 #     plt.show()    
-    return CR1
+    return CR
 
 '''------------------------------------------Software for Correlating all the 2020 data------------------------------------------
 

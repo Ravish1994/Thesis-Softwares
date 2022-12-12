@@ -49,12 +49,12 @@ def CYGNSS_Data_availability(m,n,lat,lon):
         if i<=9:
             path1 = f'D:\EG\Project Data\CYGNSS_CSV_Files\Day_00{i}.csv'
             SR1 = SR_1(path1,lat,lon)
-            SR1.to_csv(f'CYGNSS_Data_Availability_Day_00{i}_{lat}_{lon}.csv',index = False)
+            SR1.to_csv(rf'D:\EG\Project Data\CYGNSS_Obs_Chambal_{lat}_{lon}\Chambal_{lat}_{lon}\CYGNSS_Data_Availability_Day_00{i}_{lat}_{lon}.csv',index = False)
         elif i<=99:
             path1 = f'D:\EG\Project Data\CYGNSS_CSV_Files\Day_0{i}.csv'
             SR1 = SR_1(path1,lat,lon)
-            SR1.to_csv(f'CYGNSS_Data_Availability_Day_0{i}_{lat}_{lon}.csv',index = False)
+            SR1.to_csv(rf'D:\EG\Project Data\CYGNSS_Obs_Chambal_{lat}_{lon}\Chambal_{lat}_{lon}\CYGNSS_Data_Availability_Day_0{i}_{lat}_{lon}.csv',index = False)
         elif i<=366:
             path1 = f'D:\EG\Project Data\CYGNSS_CSV_Files\Day_{i}.csv'
             SR1 = SR_1(path1,lat,lon)
-            SR1.to_csv(f'CYGNSS_Data_Availability_Day_{i}_{lat}_{lon}.csv',index = False)
+            SR1.to_csv(rf'D:\EG\Project Data\CYGNSS_Obs_Chambal_{lat}_{lon}\Chambal_{lat}_{lon}\CYGNSS_Data_Availability_Day_{i}_{lat}_{lon}.csv',index = False)

@@ -43,15 +43,37 @@ def SR_GLDAS_SM_Corr(path,lat,lon):
     CR = (np.array(df1.corr()))*100
     CR1 = np.round(CR[0][1],2)
     
-    plt.figure(figsize=(30,8))
-    plt.scatter(Dataset['Day_No'],Dataset['Cygnss_SR'],label = 'CYGNSS Backscatter Normalized between 0 and 1')
-    plt.scatter(Dataset['Day_No'],Dataset['GLDAS_SM'],label = 'GLDAS Soil Moisture values between 0 and 1')
+    a1 = Dataset['Cygnss_SR'] # Observed Data
+    a2 = Dataset['GLDAS_SM']  # Simulated Data
+    denominator = np.sum((a1 - np.mean(a1))**2)
+    numerator   = np.sum((a2 - a1)**2)
+    nse_val     = 1 - (numerator/denominator)
+    
+    plt.figure(figsize=(30,10))
+    plt.scatter(Dataset['Day_No'],Dataset['Cygnss_SR'],label = 'Normalized CYGNSS Backscatter')
+    plt.scatter(Dataset['Day_No'],Dataset['GLDAS_SM'],label  = 'GLDAS Soil Moisture')
     plt.ylabel('''Soil Moisture and Normalized Backscatter''',fontsize=15)
     plt.xlabel('Days of Year 2020',fontsize=15)
-    plt.title(f'Latitude:{lat} Longitude:{lon} Correlation:{CR1}%  RMSE : {round(rmse,2)}',fontsize=15)
-    plt.legend(fontsize=15)
+    plt.title(f'Latitude:{lat} Longitude:{lon} NSE_Val: {np.round(nse_val,2)} Correlation:{CR1}%  RMSE : {round(rmse,2)}',fontsize=15)
+    plt.legend(fontsize=30)
     
-    sns.lmplot(x='Cygnss_SR',y='GLDAS_SM',data=Dataset,aspect=4,height=6)
+    plt.figure(figsize=(4,4))
+    plt.scatter(Dataset['Cygnss_SR'],Dataset['GLDAS_SM'],s=20)
     plt.xlabel('Cygnss Backscatter')
     plt.ylabel('GLDAS_SM')
-    plt.title(f'''Fitting a Regression Line using lmplot''')
+    plt.plot([0,1],[0,1],c='gray')
+    plt.xlim(0,1)
+    plt.ylim(0,1)
+    plt.xticks(np.arange(0, 1, 0.2))
+    plt.yticks(np.arange(0, 1, 0.2))
+    
+    import seaborn as sns
+    plt.figure(figsize=(2,2))
+    sns.lmplot(x='Cygnss_SR',y='GLDAS_SM',data=Dataset)
+    plt.xlabel('Normalized Surface Reflectivity')
+    plt.ylabel('GLDAS Soil Moisture')
+    plt.plot([0,1],[0,1],c='gray')
+    plt.xlim(0,1)
+    plt.ylim(0,1)
+    plt.xticks(np.arange(0, 1, 0.1))
+    plt.yticks(np.arange(0, 1, 0.1))

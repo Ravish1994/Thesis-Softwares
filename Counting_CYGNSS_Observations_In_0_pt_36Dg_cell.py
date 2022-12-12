@@ -57,70 +57,44 @@ def CYGNSS_Data_availability(m,n,lat,lon):
     Day_Number = pd.DataFrame(Day_Number)
     Day_Number.columns = ['Days']
     Day_Number['Number of CyGNSS Observations'] = SR_counts
-    Day_Number.to_csv(f'Observations_Counts_of_CYGNSS_within_36km_Gridcell_{lat}_{lon}.csv',index = False)
+    Day_Number.to_csv(rf'D:\EG\Project Data\CYGNSS_Data_in_0p36Dg\CYGNSS_ObsCounts_36KmGrid\Observations_Counts_of_CYGNSS_within_36km_Gridcell_{lat}_{lon}.csv',index = False)
     
-def CYGNSS_Data_availability_plotting(m,n,lat,lon):
+def CYGNSS_Data_availability_plotting(lat,lon):
     import numpy as np
     import pandas as pd
     from pandas import DataFrame
     import matplotlib.pyplot as plt
-    Day_Number = []
-    SR_counts  = []
-    for i in range(m,n+1):
-        Day_Number.append(i)
-        if i<=9:
-            path1 = f'D:\EG\Project Data\CYGNSS_CSV_Files\Day_00{i}.csv'
-            SR1 = SR_1(path1,lat,lon)
-            SR_counts.append(SR1)
-        elif i<=99:
-            path1 = f'D:\EG\Project Data\CYGNSS_CSV_Files\Day_0{i}.csv'
-            SR1 = SR_1(path1,lat,lon)
-            SR_counts.append(SR1)
-        elif i<=366:
-            path1 = f'D:\EG\Project Data\CYGNSS_CSV_Files\Day_{i}.csv'
-            SR1 = SR_1(path1,lat,lon)
-            SR_counts.append(SR1)
-    Day_Number = pd.DataFrame(Day_Number)
-    Day_Number.columns = ['Days']
-    Day_Number['Number of CyGNSS Observations'] = SR_counts
-    plt.figure(figsize=(40,10))
+    
+    Day_Number = pd.read_csv(f'D:\EG\Project Data\CYGNSS_Data_in_0p36Dg\CYGNSS_ObsCounts_36KmGrid\Observations_Counts_of_CYGNSS_within_36km_Gridcell_{lat}_{lon}.csv')
+    plt.figure(figsize=(30,10))
     plt.bar(Day_Number['Days'],Day_Number['Number of CyGNSS Observations'])
+    N = len(Day_Number[Day_Number['Number of CyGNSS Observations']>0])
+    plt.scatter([1],[0],label=f'''Number of Days Having CYGNSS Data Availability within 36 Km 
+    grid having centroid as Lat {lat} Lon {lon}: {N}''')
+    plt.legend()
     plt.ylabel('''Number of CyGNSS Observations''',fontsize=20)
     plt.xlabel('Days of Year 2020',fontsize=20)
     plt.title(f'Number Of CyGNSS observations within 36 Km grid having centroid_Lat:{lat}_Lon:{lon}',fontsize=20)
     
     
-def CYGNSS_Data_availability_plotting2(m,n,lat,lon):
+def CYGNSS_Data_availability_plotting2(lat,lon):
     import numpy as np
     import pandas as pd
     from pandas import DataFrame
     import matplotlib.pyplot as plt
-    Day_Number = []
-    SR_counts  = []
-    for i in range(m,n+1):
-        Day_Number.append(i)
-        if i<=9:
-            path1 = f'D:\EG\Project Data\CYGNSS_CSV_Files\Day_00{i}.csv'
-            SR1 = SR_1(path1,lat,lon)
-            SR_counts.append(SR1)
-        elif i<=99:
-            path1 = f'D:\EG\Project Data\CYGNSS_CSV_Files\Day_0{i}.csv'
-            SR1 = SR_1(path1,lat,lon)
-            SR_counts.append(SR1)
-        elif i<=366:
-            path1 = f'D:\EG\Project Data\CYGNSS_CSV_Files\Day_{i}.csv'
-            SR1 = SR_1(path1,lat,lon)
-            SR_counts.append(SR1)
-            
+         
     Counts_restricted = []
     for i in range(1,367):
-        Counts_restricted.append(7)
+        Counts_restricted.append(4)
         
-    Day_Number = pd.DataFrame(Day_Number)
-    Day_Number.columns = ['Days']
-    Day_Number['Number of CyGNSS Observations'] = SR_counts
-    plt.figure(figsize=(40,10))
+    Day_Number = pd.read_csv(f'D:\EG\Project Data\CYGNSS_Data_in_0p36Dg\CYGNSS_ObsCounts_36KmGrid\Observations_Counts_of_CYGNSS_within_36km_Gridcell_{lat}_{lon}.csv')
+    
+    N = len(Day_Number[Day_Number['Number of CyGNSS Observations']>0])
+    plt.figure(figsize=(30,10))
     plt.bar(Day_Number['Days'],Day_Number['Number of CyGNSS Observations'])
+    plt.scatter([0],[0],color='white',s=5,label=f'''Number of Days Having CYGNSS Data Availability within 36 Km 
+    grid having centroid as Lat {lat} Lon {lon}: {N}''')
+    plt.legend(fontsize=30)
     plt.plot(Day_Number['Days'],Counts_restricted)
     plt.ylabel('''Number of CyGNSS Observations''',fontsize=20)
     plt.xlabel('Days of Year 2020',fontsize=20)
@@ -161,15 +135,20 @@ def CYGNSS_Data_availability_plotting3(m,n,lat,lon):
             
     Counts_restricted = []
     for i in range(1,367):
-        Counts_restricted.append(7)
+        Counts_restricted.append(4)
         
     Day_Number = pd.DataFrame(Day_Number)
     Day_Number.columns = ['Days']
     Day_Number['Number of CyGNSS Observations'] = SR_counts
-    plt.figure(figsize=(40,10))
+    N = len(Day_Number[Day_Number['Number of CyGNSS Observations']>0])
+    plt.figure(figsize=(30,10))
     plt.bar(Day_Number['Days'],Day_Number['Number of CyGNSS Observations'])
+    plt.scatter([1],[0],label=f'''Number of Days Having CYGNSS Data Availability within 36 Km 
+    grid having centroid as Lat {lat} Lon {lon}: {N}''')
+    plt.legend()
     plt.plot(Day_Number['Days'],Counts_restricted)
     plt.ylabel('''Number of CyGNSS Observations''',fontsize=20)
     plt.xlabel('Days of Year 2020',fontsize=20)
     plt.title(f'Number Of CyGNSS observations within 36 Km grid having centroid_Lat:{lat}_Lon:{lon}',fontsize=20)
+
    
